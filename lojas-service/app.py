@@ -4,6 +4,7 @@ import os
 from datetime import datetime
 
 app = Flask(__name__)
+app.json.ensure_ascii = False  # acentos legíveis nas respostas JSON
 
 # Configuração do banco de dados
 DB_CONFIG = {
@@ -45,6 +46,39 @@ def execute_query(query, params=None, fetch=False):
     finally:
         connection.close()
 
+CAMPOS_LOJA = ('nome', 'descricao', 'endereco', 'contato')
+LIMITES_LOJA = {'nome': 100, 'descricao': 1000, 'endereco': 255, 'contato': 50}
+
+def dados_requisicao():
+    """Aceita tanto JSON quanto formulário (o front e o curl -d usam formulário)"""
+    if request.is_json:
+        return request.get_json(silent=True) or {}
+    return request.form
+
+def validar_loja(dados):
+    """Valida os campos da loja e devolve (loja, erro)"""
+    loja = {c: str(dados.get(c) or '').strip() for c in CAMPOS_LOJA}
+    if not loja['nome']:
+        return None, "O campo 'nome' é obrigatório"
+    for campo, limite in LIMITES_LOJA.items():
+        if len(loja[campo]) > limite:
+            return None, f"O campo '{campo}' aceita no máximo {limite} caracteres"
+    return loja, None
+
+def execute_write(query, params=None):
+    """Executa UPDATE/DELETE e devolve as linhas afetadas (None em caso de erro)"""
+    connection = get_db_connection()
+    if not connection:
+        return None
+    try:
+        with connection.cursor() as cursor:
+            return cursor.execute(query, params)
+    except Exception as e:
+        print(f"Erro ao executar query: {e}")
+        return None
+    finally:
+        connection.close()
+
 @app.route('/')
 def home():
     return render_template('index.html')
@@ -56,11 +90,11 @@ def favicon():
 @app.route('/lojas', methods=['GET', 'POST'])
 def lojas_route():
     if request.method == 'POST':
-        nome = request.form.get('nome')
-        descricao = request.form.get('descricao')
-        endereco = request.form.get('endereco')
-        contato = request.form.get('contato')
-        
+        loja, erro = validar_loja(dados_requisicao())
+        if erro:
+            return jsonify({"error": erro}), 400
+        nome, descricao, endereco, contato = (loja[c] for c in CAMPOS_LOJA)
+
         # Inserir loja no banco de dados
         query = """
         INSERT INTO lojas (nome, descricao, endereco, contato) 
@@ -72,10 +106,10 @@ def lojas_route():
             # Buscar todas as lojas para retornar
             lojas = execute_query("SELECT * FROM lojas ORDER BY id", fetch=True)
             return jsonify({
-                "message": "Loja cadastrada com sucesso", 
-                "loja_id": loja_id, 
+                "message": "Loja cadastrada com sucesso",
+                "loja_id": loja_id,
                 "lojas": lojas or []
-            })
+            }), 201
         else:
             return jsonify({"error": "Erro ao cadastrar loja"}), 500
     
@@ -83,10 +117,47 @@ def lojas_route():
     lojas = execute_query("SELECT * FROM lojas ORDER BY id", fetch=True)
     return jsonify({"lojas": lojas or []})
 
+@app.route('/lojas/<int:loja_id>', methods=['GET', 'PUT', 'DELETE'])
+def loja_route(loja_id):
+    if request.method == 'GET':
+        loja = execute_query("SELECT * FROM lojas WHERE id = %s", (loja_id,), fetch=True)
+        if loja is None:
+            return jsonify({"error": "Erro ao consultar loja"}), 500
+        if not loja:
+            return jsonify({"error": "Loja não encontrada"}), 404
+        return jsonify({"loja": loja[0]})
+
+    if request.method == 'PUT':
+        loja, erro = validar_loja(dados_requisicao())
+        if erro:
+            return jsonify({"error": erro}), 400
+        existe = execute_query("SELECT id FROM lojas WHERE id = %s", (loja_id,), fetch=True)
+        if not existe:
+            return jsonify({"error": "Loja não encontrada"}), 404
+        afetadas = execute_write(
+            "UPDATE lojas SET nome = %s, descricao = %s, endereco = %s, contato = %s WHERE id = %s",
+            (*(loja[c] for c in CAMPOS_LOJA), loja_id),
+        )
+        if afetadas is None:
+            return jsonify({"error": "Erro ao atualizar loja"}), 500
+        atualizada = execute_query("SELECT * FROM lojas WHERE id = %s", (loja_id,), fetch=True)
+        return jsonify({"message": "Loja atualizada com sucesso", "loja": atualizada[0]})
+
+    # DELETE: produtos_lojas e vendas_lojas caem junto (ON DELETE CASCADE)
+    afetadas = execute_write("DELETE FROM lojas WHERE id = %s", (loja_id,))
+    if afetadas is None:
+        return jsonify({"error": "Erro ao remover loja"}), 500
+    if afetadas == 0:
+        return jsonify({"error": "Loja não encontrada"}), 404
+    return jsonify({"message": "Loja removida com sucesso", "loja_id": loja_id})
+
 @app.route('/produtos_lojas', methods=['POST'])
 def produtos_lojas_route():
-    loja_id = request.form.get('loja_id')
-    produto_id = request.form.get('produto_id')
+    dados = dados_requisicao()
+    loja_id = dados.get('loja_id')
+    produto_id = dados.get('produto_id')
+    if not loja_id or not produto_id:
+        return jsonify({"error": "Informe loja_id e produto_id"}), 400
     
     # Inserir associação produto-loja no banco de dados (com valores padrão)
     query = """
@@ -97,9 +168,9 @@ def produtos_lojas_route():
     preco_loja = VALUES(preco_loja)
     """
     
-    # Usar valores padrão quando os campos não são fornecidos
-    quantidade_estoque = 0  # Valor padrão
-    preco_loja = None  # Valor padrão (NULL no banco)
+    # Quantidade e preço são opcionais (padrão: 0 unidades e preço NULL)
+    quantidade_estoque = dados.get('quantidade_estoque') or 0
+    preco_loja = dados.get('preco_loja') or None
     
     result = execute_query(query, (loja_id, produto_id, quantidade_estoque, preco_loja))
     
@@ -149,7 +220,9 @@ def dashboard(loja_id):
     loja_query = "SELECT * FROM lojas WHERE id = %s"
     loja = execute_query(loja_query, (loja_id,), fetch=True)
     loja_info = loja[0] if loja else None
-    
+    if loja_info is None:
+        return jsonify({"error": "Loja não encontrada"}), 404
+
     return jsonify({
         "loja": loja_info,
         "vendas": vendas or [], 
@@ -177,8 +250,11 @@ def status():
 @app.route('/vendas', methods=['POST'])
 def registrar_venda():
     """Registrar uma nova venda"""
-    loja_id = request.form.get('loja_id')
-    produto_id = request.form.get('produto_id')
+    dados = dados_requisicao()
+    loja_id = dados.get('loja_id')
+    produto_id = dados.get('produto_id')
+    if not loja_id or not produto_id:
+        return jsonify({"error": "Informe loja_id e produto_id"}), 400
     quantidade = request.form.get('quantidade', 1)
     valor_total = request.form.get('valor_total')
     
