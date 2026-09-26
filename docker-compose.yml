@@ -1,0 +1,45 @@
+version: '3.8'
+
+# Arquivo base do Docker Compose
+# Use com override files para dev/prod:
+# docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+# docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
+
+services:
+  mysql-db:
+    image: mysql:8.0-debian
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-ecommerce_db}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+      start_period: 40s
+      interval: 30s
+
+  lojas-service:
+    restart: unless-stopped
+    environment:
+      DB_HOST: ${DB_HOST:-mysql-db}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME:-ecommerce_db}
+      FLASK_ENV: ${FLASK_ENV:-development}
+      FLASK_DEBUG: ${FLASK_DEBUG:-true}
+    ports:
+      - "8484:8484"
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8484/status')"]
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+      interval: 30s

@@ -1,0 +1,42 @@
+version: '3.8'
+
+# Override file para ambiente de DESENVOLVIMENTO
+# Uso: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  mysql-db:
+    ports:
+      - "3308:3306"
+    volumes:
+      - mysql_data_dev:/var/lib/mysql
+    networks:
+      - dev-network
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_USER: ${MYSQL_USER:-app_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+
+  lojas-service:
+    build:
+      context: ./lojas-service
+      dockerfile: dockerfile.dev
+    volumes:
+      # Volume para hot reload em desenvolvimento
+      - ./lojas-service:/app:ro
+    networks:
+      - dev-network
+    environment:
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${DB_PASSWORD}
+      FLASK_ENV: development
+      FLASK_DEBUG: "true"
+
+volumes:
+  mysql_data_dev:
+    driver: local
+    name: ecommerce_dev_mysql_data
+
+networks:
+  dev-network:
+    driver: bridge
+    name: ecommerce_dev_network
