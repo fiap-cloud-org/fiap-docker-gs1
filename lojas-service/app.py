@@ -218,7 +218,7 @@ def historico():
         # Histórico de uma loja específica
         query = """
         SELECT vl.*, p.nome as produto_nome, l.nome as loja_nome,
-               DATE_FORMAT(vl.data_venda, '%d/%m/%Y %H:%i') as data_formatada
+               DATE_FORMAT(vl.data_venda, '%%d/%%m/%%Y %%H:%%i') as data_formatada
         FROM vendas_lojas vl
         JOIN produtos p ON vl.produto_id = p.id
         JOIN lojas l ON vl.loja_id = l.id
