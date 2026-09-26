@@ -12,7 +12,7 @@ services:
     user: mysql
 
   lojas-service:
-    image: ${DOCKER_HUB_USER:-william201192}/lojas-service:${IMAGE_TAG:-v1.0.1}
+    image: ${DOCKER_HUB_USER:-local}/lojas-service:${IMAGE_TAG:-v1.0.1}
     build:
       context: ./lojas-service
       dockerfile: dockerfile

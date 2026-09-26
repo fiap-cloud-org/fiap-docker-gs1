@@ -30,7 +30,7 @@ O serviço escolhido foi o **lojas-service**: uma API em Flask com MySQL que cad
 
 | Item | Desenvolvimento (`docker-compose.dev.yml`) | Produção (`docker-compose.prod.yml`) |
 |---|---|---|
-| Imagem do app | `dockerfile.dev`, build local | `dockerfile` multi-stage, `william201192/lojas-service:${IMAGE_TAG}` |
+| Imagem do app | `dockerfile.dev`, build local | `dockerfile` multi-stage, `${DOCKER_HUB_USER}/lojas-service:${IMAGE_TAG}` |
 | Servidor | `flask run --reload` com o código montado (hot reload) | Gunicorn com 2 workers |
 | MySQL | `mysql:8.0-debian`, porta publicada só em `127.0.0.1:3308` | `mysql:8.0-debian` sem porta publicada, rodando como usuário `mysql` |
 | Volume | `ecommerce_dev_mysql_data` | `ecommerce_prod_mysql_data` |
@@ -72,11 +72,11 @@ A imagem passou por varredura de vulnerabilidades desde a primeira publicação.
 Hoje as dependências estão em Flask 3.1.3, Werkzeug 3.1.6, cryptography 50.0.0 e requests 2.33.0, e a imagem final não carrega o pip. O **Trivy** não encontra nenhuma CVE conhecida na imagem de produção (varredura de 26/09/2026):
 
 ```text
-william201192/lojas-service:v1.0.1 (alpine 3.24.2)
+lojas-service:v1.0.1 (alpine 3.24.2)
 Total: 0 (UNKNOWN: 0, LOW: 0, MEDIUM: 0, HIGH: 0, CRITICAL: 0)
 ```
 
-No Docker Hub estão publicadas as tags `v1.0.0` e `latest` ([william201192/lojas-service](https://hub.docker.com/r/william201192/lojas-service)). Se a tag de `IMAGE_TAG` não existir lá, o Compose de produção constrói a imagem localmente.
+A imagem é publicada no Docker Hub do usuário definido em `DOCKER_HUB_USER`. Se a tag de `IMAGE_TAG` não existir lá, o Compose de produção constrói a imagem localmente.
 
 ## Tecnologias utilizadas
 
@@ -138,8 +138,8 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.
 Para publicar uma nova versão da imagem:
 
 ```bash
-docker build -t william201192/lojas-service:v1.0.1 ./lojas-service
-docker login && docker push william201192/lojas-service:v1.0.1
+docker build -t <seu-usuario>/lojas-service:v1.0.1 ./lojas-service
+docker login && docker push <seu-usuario>/lojas-service:v1.0.1
 ```
 
 Para parar, troque `up -d ...` por `down` (os dados continuam no volume) ou `down -v` (apaga o volume).
@@ -167,7 +167,7 @@ curl -d "loja_id=1&produto_id=7&quantidade=2&valor_total=45.00" http://localhost
 curl "http://localhost:8484/historico?loja_id=1"
 
 # Varredura da imagem de produção
-docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image william201192/lojas-service:v1.0.1
+docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image local/lojas-service:v1.0.1
 
 # Backup lógico do banco
 docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.prod exec -T mysql-db \
