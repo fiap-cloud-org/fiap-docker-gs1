@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Módulo de Lojas - Sistema de Gestão</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>🏪 Módulo de Lojas</h1>
+        
+        <section class="card-hover">
+            <h2>📝 Cadastro de Lojas DEV</h2>
+            <form id="cadastro-loja-form">
+                <input type="text" id="nome" placeholder="Nome da Loja" required>
+                <input type="text" id="descricao" placeholder="Descrição dos Produtos" required>
+                <input type="text" id="endereco" placeholder="Endereço Completo" required>
+                <input type="text" id="contato" placeholder="Telefone de Contato" required>
+                <button type="submit">✨ Cadastrar Loja</button>
+            </form>
+            <div id="lojas-list"></div>
+        </section>
+
+        <section class="card-hover">
+            <h2>🔗 Associação de Produtos a Lojas</h2>
+            <form id="associar-produto-form">
+                <input type="number" id="loja-id" placeholder="ID da Loja" required>
+                <input type="number" id="produto-id" placeholder="ID do Produto" required>
+                <button type="submit">🔗 Associar Produto</button>
+            </form>
+            <div id="associacao-mensagem"></div>
+        </section>
+
+    </div>
+
+    <script>
+        document.getElementById('cadastro-loja-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData();
+            formData.append('nome', document.getElementById('nome').value);
+            formData.append('descricao', document.getElementById('descricao').value);
+            formData.append('endereco', document.getElementById('endereco').value);
+            formData.append('contato', document.getElementById('contato').value);
+
+            fetch('/lojas', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message === "Loja cadastrada com sucesso") {
+                    const loja = data.lojas[data.lojas.length - 1];
+                    const lojaItem = document.createElement('div');
+                    lojaItem.textContent = `ID: ${loja.id}, Nome: ${loja.nome}, Descrição: ${loja.descricao}, Endereço: ${loja.endereco}, Contato: ${loja.contato}`;
+                    document.getElementById('lojas-list').appendChild(lojaItem);
+                }
+            });
+        });
+
+        document.getElementById('associar-produto-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData();
+            formData.append('loja_id', document.getElementById('loja-id').value);
+            formData.append('produto_id', document.getElementById('produto-id').value);
+
+            fetch('/produtos_lojas', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                const associacaoMensagem = document.getElementById('associacao-mensagem');
+                associacaoMensagem.textContent = data.message;
+            });
+        });
+
+
+
+        // Fetch and display existing lojas on page load
+        fetch('/lojas')
+            .then(response => response.json())
+            .then(data => {
+                const lojasList = document.getElementById('lojas-list');
+                data.lojas.forEach(loja => {
+                    const lojaItem = document.createElement('div');
+                    lojaItem.textContent = `ID: ${loja.id}, Nome: ${loja.nome}, Descrição: ${loja.descricao}, Endereço: ${loja.endereco}, Contato: ${loja.contato}`;
+                    lojasList.appendChild(lojaItem);
+                });
+            });
+    </script>
+</body>
+</html>
