@@ -152,8 +152,11 @@ def loja_route(loja_id):
 
 @app.route('/produtos_lojas', methods=['POST'])
 def produtos_lojas_route():
-    loja_id = request.form.get('loja_id')
-    produto_id = request.form.get('produto_id')
+    dados = dados_requisicao()
+    loja_id = dados.get('loja_id')
+    produto_id = dados.get('produto_id')
+    if not loja_id or not produto_id:
+        return jsonify({"error": "Informe loja_id e produto_id"}), 400
     
     # Inserir associação produto-loja no banco de dados (com valores padrão)
     query = """
@@ -164,9 +167,9 @@ def produtos_lojas_route():
     preco_loja = VALUES(preco_loja)
     """
     
-    # Usar valores padrão quando os campos não são fornecidos
-    quantidade_estoque = 0  # Valor padrão
-    preco_loja = None  # Valor padrão (NULL no banco)
+    # Quantidade e preço são opcionais (padrão: 0 unidades e preço NULL)
+    quantidade_estoque = dados.get('quantidade_estoque') or 0
+    preco_loja = dados.get('preco_loja') or None
     
     result = execute_query(query, (loja_id, produto_id, quantidade_estoque, preco_loja))
     
@@ -216,7 +219,9 @@ def dashboard(loja_id):
     loja_query = "SELECT * FROM lojas WHERE id = %s"
     loja = execute_query(loja_query, (loja_id,), fetch=True)
     loja_info = loja[0] if loja else None
-    
+    if loja_info is None:
+        return jsonify({"error": "Loja não encontrada"}), 404
+
     return jsonify({
         "loja": loja_info,
         "vendas": vendas or [], 
@@ -244,8 +249,11 @@ def status():
 @app.route('/vendas', methods=['POST'])
 def registrar_venda():
     """Registrar uma nova venda"""
-    loja_id = request.form.get('loja_id')
-    produto_id = request.form.get('produto_id')
+    dados = dados_requisicao()
+    loja_id = dados.get('loja_id')
+    produto_id = dados.get('produto_id')
+    if not loja_id or not produto_id:
+        return jsonify({"error": "Informe loja_id e produto_id"}), 400
     quantidade = request.form.get('quantidade', 1)
     valor_total = request.form.get('valor_total')
     
