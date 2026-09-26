@@ -1,0 +1,41 @@
+version: '3.8'
+
+# Override file para ambiente de PRODUÇÃO
+# Uso: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
+
+services:
+  mysql-db:
+    volumes:
+      - mysql_data_prod:/var/lib/mysql
+    networks:
+      - prod-network
+    security_opt:
+      - no-new-privileges:true
+    user: mysql
+    # Não expor porta 3306 em produção para maior segurança
+    # ports:
+    #   - "3306:3306"
+
+  lojas-service:
+    image: ${DOCKER_HUB_USER:-yourusername}/lojas-service:${IMAGE_TAG:-latest}
+    networks:
+      - prod-network
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      FLASK_ENV: production
+      FLASK_DEBUG: "false"
+    # Para produção, pode usar build ao invés de imagem
+    # build:
+    #   context: ./lojas-service
+    #   dockerfile: dockerfile
+
+volumes:
+  mysql_data_prod:
+    driver: local
+    name: ecommerce_prod_mysql_data
+
+networks:
+  prod-network:
+    driver: bridge
+    name: ecommerce_prod_network
