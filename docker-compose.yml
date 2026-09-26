@@ -14,11 +14,13 @@ services:
     volumes:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      timeout: 20s
-      retries: 10
-      start_period: 40s
-      interval: 30s
+      # 127.0.0.1 força TCP: durante o init.sql o servidor temporário só escuta no socket,
+      # então o banco só fica "healthy" quando o servidor definitivo sobe na 3306
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1"]
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+      interval: 10s
 
   lojas-service:
     restart: unless-stopped
