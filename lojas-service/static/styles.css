@@ -47,7 +47,7 @@ a:hover { text-decoration: underline; }
 .status {
   display: inline-flex; align-items: center; gap: 8px;
   border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px;
-  font-size: 12.5px; color: var(--muted); background: var(--surface-2);
+  font-size: 12.5px; color: var(--muted); background: var(--surface-2); white-space: nowrap;
 }
 .status__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); }
 .status[data-state="ok"] .status__dot { background: var(--ok); box-shadow: 0 0 0 3px rgba(22, 121, 74, .15); }
@@ -145,6 +145,7 @@ a:hover { text-decoration: underline; }
 .pill {
   display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 999px;
   background: var(--surface-2); border: 1px solid var(--border); color: var(--muted);
+  white-space: nowrap;
 }
 
 .footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 8px 24px 32px; }
@@ -167,6 +168,7 @@ a:hover { text-decoration: underline; }
 }
 
 @media (max-width: 560px) {
+  .brand span { display: none; }
   .page { padding: 16px; }
   .inline-form { grid-template-columns: 1fr 1fr; }
   .inline-form select, .inline-form .btn { grid-column: 1 / -1; }
