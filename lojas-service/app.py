@@ -4,6 +4,7 @@ import os
 from datetime import datetime
 
 app = Flask(__name__)
+app.json.ensure_ascii = False  # acentos legíveis nas respostas JSON
 
 # Configuração do banco de dados
 DB_CONFIG = {
