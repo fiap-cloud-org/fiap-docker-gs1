@@ -20,10 +20,12 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Stage 2: Production image
 FROM python:3.12-alpine AS production
 
-# Instalar apenas dependências runtime necessárias
+# Instalar apenas dependências runtime necessárias e tirar o pip da imagem final
+# (a aplicação não usa, e era o único pacote com CVE apontado pelo Trivy)
 RUN apk add --no-cache \
     libffi \
-    openssl
+    openssl && \
+    python -m pip uninstall -y pip
 
 # Criar usuário não-root
 RUN addgroup -g 1001 -S appgroup && \
