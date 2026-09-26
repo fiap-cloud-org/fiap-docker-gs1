@@ -1,0 +1,24 @@
+# Ambiente
+.env
+.env.dev
+.env.prod
+!.env*.example
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+
+# Sistema e editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Backups de volume e artefatos locais
+backups/
+*.tar.gz
+*.log
+docs/*-preview.png
+docs/*.svg
