@@ -35,8 +35,8 @@ services:
       mysql-db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8484/status')"]
-      timeout: 10s
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8484/status', timeout=3).raise_for_status()"]
+      timeout: 5s
       retries: 5
-      start_period: 30s
-      interval: 30s
+      start_period: 15s
+      interval: 15s
