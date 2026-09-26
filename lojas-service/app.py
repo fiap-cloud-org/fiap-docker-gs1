@@ -167,11 +167,12 @@ def status():
     else:
         db_status = "disconnected"
     
+    # 503 quando o banco cai, para o healthcheck do container acusar o problema
     return jsonify({
-        "status": "ok",
+        "status": "ok" if db_status == "connected" else "degraded",
         "database": db_status,
         "timestamp": datetime.now().isoformat()
-    })
+    }), 200 if db_status == "connected" else 503
 
 @app.route('/vendas', methods=['POST'])
 def registrar_venda():
