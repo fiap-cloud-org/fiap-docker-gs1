@@ -1,3 +1,6 @@
+-- O cliente do entrypoint do MySQL usa latin1 por padrão; sem isso os acentos viram mojibake
+SET NAMES utf8mb4;
+
 -- Criando o banco de dados (caso use um único banco)
 CREATE DATABASE IF NOT EXISTS ecommerce_db;
 USE ecommerce_db;
