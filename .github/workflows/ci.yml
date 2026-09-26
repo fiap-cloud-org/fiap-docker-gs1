@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint do Python e validação do Compose
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Ruff
+        run: pipx run ruff check --select E9,F,B lojas-service
+      - name: docker compose config (dev e prod)
+        run: |
+          cp .env.dev.example .env.dev
+          cp .env.prod.example .env.prod
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml --env-file .env.dev config -q
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.prod config -q
+
+  scan:
+    name: Trivy nas dependências
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: lojas-service/requirements.txt
+          scanners: vuln
+          severity: CRITICAL,HIGH
+          exit-code: "0"
+
+  smoke:
+    name: Build e smoke test (${{ matrix.env }})
+    runs-on: ubuntu-latest
+    needs: lint
+    strategy:
+      matrix:
+        env: [dev, prod]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Gera o .env com senhas descartáveis
+        run: |
+          sed -e "s/troque-a-senha-root\|gere-uma-senha-forte-root/$(openssl rand -hex 12)/" \
+              -e "s/troque-a-senha-da-app\|gere-uma-senha-forte-app/$(openssl rand -hex 12)/" \
+              -e "s/^IMAGE_TAG=.*/IMAGE_TAG=ci/" \
+              .env.${{ matrix.env }}.example > .env.${{ matrix.env }}
+      - name: Sobe a stack e espera os healthchecks
+        run: docker compose -f docker-compose.yml -f docker-compose.${{ matrix.env }}.yml --env-file .env.${{ matrix.env }} up -d --build --wait --wait-timeout 180
+      - name: CRUD de lojas via curl
+        run: |
+          set -e
+          U=http://localhost:8484
+          curl -fsS $U/status
+          ID=$(curl -fsS -X POST -d "nome=Loja CI&descricao=Smoke test&endereco=Rua A, 1&contato=11999999999" $U/lojas | python3 -c 'import sys,json; print(json.load(sys.stdin)["loja_id"])')
+          curl -fsS $U/lojas/$ID
+          curl -fsS -X PUT -d "nome=Loja CI editada" $U/lojas/$ID | grep -q "Loja CI editada"
+          curl -fsS "$U/historico?loja_id=1" | grep -Eq '"loja_id": ?1,'
+          curl -fsS -X DELETE $U/lojas/$ID
+          test "$(curl -s -o /dev/null -w '%{http_code}' $U/lojas/$ID)" = "404"
+          curl -fsS $U/ | grep -q "lojas-service"
+      - name: Logs em caso de falha
+        if: failure()
+        run: docker compose -f docker-compose.yml -f docker-compose.${{ matrix.env }}.yml --env-file .env.${{ matrix.env }} logs
+      - name: Derruba a stack
+        if: always()
+        run: docker compose -f docker-compose.yml -f docker-compose.${{ matrix.env }}.yml --env-file .env.${{ matrix.env }} down -v
