@@ -1,19 +1,16 @@
-version: '3.8'
-
-# Arquivo base do Docker Compose
-# Use com override files para dev/prod:
-# docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
-# docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
+# Arquivo base do Docker Compose. Use sempre com um override e o .env do ambiente:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml  --env-file .env.dev  up -d
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.prod up -d
 
 services:
   mysql-db:
     image: mysql:8.0-debian
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?defina MYSQL_ROOT_PASSWORD no .env}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-ecommerce_db}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_USER: ${MYSQL_USER:?defina MYSQL_USER no .env}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?defina MYSQL_PASSWORD no .env}
     volumes:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
@@ -26,14 +23,12 @@ services:
   lojas-service:
     restart: unless-stopped
     environment:
-      DB_HOST: ${DB_HOST:-mysql-db}
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_NAME: ${DB_NAME:-ecommerce_db}
-      FLASK_ENV: ${FLASK_ENV:-development}
-      FLASK_DEBUG: ${FLASK_DEBUG:-true}
+      DB_HOST: mysql-db
+      DB_USER: ${MYSQL_USER:?defina MYSQL_USER no .env}
+      DB_PASSWORD: ${MYSQL_PASSWORD:?defina MYSQL_PASSWORD no .env}
+      DB_NAME: ${MYSQL_DATABASE:-ecommerce_db}
     ports:
-      - "8484:8484"
+      - "${APP_PORT:-8484}:8484"
     depends_on:
       mysql-db:
         condition: service_healthy
