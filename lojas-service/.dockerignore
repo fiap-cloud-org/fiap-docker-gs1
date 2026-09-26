@@ -1,0 +1,38 @@
+# Arquivos Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Arquivos de desenvolvimento
+.git/
+.gitignore
+README.md
+.env*
+docker-compose*.yml
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db
+*.log
+
+# Arquivos de IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Arquivos de teste
+tests/
+test_*
+*_test.py
+
+# Documentação
+docs/
+*.md
