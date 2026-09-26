@@ -67,16 +67,16 @@ O `docker-compose.yml` é a base comum aos dois: variáveis, `init.sql` e health
 
 ### Segurança da imagem
 
-Na entrega original, o **Docker Scout** apontou 7 vulnerabilidades na `v1.0.0` (1 crítica, 2 altas, 3 médias e 1 baixa). A crítica era a **CVE-2024-36039** (SQL injection no PyMySQL 1.1.0, CVSS 9.8), corrigida com o PyMySQL 1.1.1 na `v1.0.1`, junto com `cryptography` 43.0.1 e `requests` 2.32.0.
+A imagem passou por varredura de vulnerabilidades desde a primeira publicação. Na `v1.0.0`, o **Docker Scout** apontou 7 vulnerabilidades (1 crítica, 2 altas, 3 médias e 1 baixa). A crítica era a **CVE-2024-36039** (SQL injection no PyMySQL 1.1.0, CVSS 9.8), tratada com o PyMySQL 1.1.1, junto com `cryptography` 43.0.1 e `requests` 2.32.0.
 
-Nesta versão as dependências foram atualizadas de novo (Flask 3.1.3, Werkzeug 3.1.6, cryptography 50.0.0, requests 2.33.0) e o pip saiu da imagem final. O **Trivy** não encontra nenhuma CVE conhecida na imagem de produção (varredura de 26/09/2026):
+Hoje as dependências estão em Flask 3.1.3, Werkzeug 3.1.6, cryptography 50.0.0 e requests 2.33.0, e a imagem final não carrega o pip. O **Trivy** não encontra nenhuma CVE conhecida na imagem de produção (varredura de 26/09/2026):
 
 ```text
 william201192/lojas-service:v1.0.1 (alpine 3.24.2)
 Total: 0 (UNKNOWN: 0, LOW: 0, MEDIUM: 0, HIGH: 0, CRITICAL: 0)
 ```
 
-No Docker Hub estão publicadas as tags `v1.0.0` e `latest` da entrega original ([william201192/lojas-service](https://hub.docker.com/r/william201192/lojas-service)). Se a tag de `IMAGE_TAG` não existir lá, o Compose de produção constrói a imagem localmente.
+No Docker Hub estão publicadas as tags `v1.0.0` e `latest` ([william201192/lojas-service](https://hub.docker.com/r/william201192/lojas-service)). Se a tag de `IMAGE_TAG` não existir lá, o Compose de produção constrói a imagem localmente.
 
 ## Tecnologias utilizadas
 
