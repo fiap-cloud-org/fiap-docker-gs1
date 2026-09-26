@@ -1,94 +1,147 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Módulo de Lojas - Sistema de Gestão</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lojas · Painel do e-commerce</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <div class="container">
-        <h1>🏪 Módulo de Lojas</h1>
-        
-        <section class="card-hover">
-            <h2>📝 Cadastro de Lojas DEV</h2>
-            <form id="cadastro-loja-form">
-                <input type="text" id="nome" placeholder="Nome da Loja" required>
-                <input type="text" id="descricao" placeholder="Descrição dos Produtos" required>
-                <input type="text" id="endereco" placeholder="Endereço Completo" required>
-                <input type="text" id="contato" placeholder="Telefone de Contato" required>
-                <button type="submit">✨ Cadastrar Loja</button>
-            </form>
-            <div id="lojas-list"></div>
-        </section>
+  <header class="topbar">
+    <div class="topbar__inner">
+      <div class="brand">
+        <svg class="brand__mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7"/><path d="M8 13.5 10 8h12l2 5.5M8 13.5h16M8 13.5c0 1.7 1.3 3 3 3s2.7-1.3 2.7-3c0 1.7 1.2 3 2.8 3s2.8-1.3 2.8-3c0 1.7 1.2 3 2.7 3s3-1.3 3-3M10 16.5V24h12v-7.5M14 24v-4.5h4V24"/></svg>
+        <div>
+          <strong>lojas-service</strong>
+          <span>Módulo de lojas do e-commerce</span>
+        </div>
+      </div>
+      <div class="status" id="status" data-state="checking">
+        <span class="status__dot"></span>
+        <span class="status__text">verificando banco…</span>
+      </div>
+    </div>
+  </header>
 
-        <section class="card-hover">
-            <h2>🔗 Associação de Produtos a Lojas</h2>
-            <form id="associar-produto-form">
-                <input type="number" id="loja-id" placeholder="ID da Loja" required>
-                <input type="number" id="produto-id" placeholder="ID do Produto" required>
-                <button type="submit">🔗 Associar Produto</button>
-            </form>
-            <div id="associacao-mensagem"></div>
-        </section>
+  <main class="page">
+    <section class="kpis" aria-label="Resumo">
+      <article class="kpi"><span class="kpi__label">Lojas</span><strong class="kpi__value" id="kpi-lojas">0</strong></article>
+      <article class="kpi"><span class="kpi__label">Produtos no catálogo</span><strong class="kpi__value" id="kpi-produtos">0</strong></article>
+      <article class="kpi"><span class="kpi__label">Vendas registradas</span><strong class="kpi__value" id="kpi-vendas">0</strong></article>
+      <article class="kpi"><span class="kpi__label">Faturamento</span><strong class="kpi__value" id="kpi-faturamento">R$ 0,00</strong></article>
+    </section>
 
+    <div class="grid">
+      <section class="panel panel--wide">
+        <div class="panel__head">
+          <div>
+            <h2>Lojas cadastradas</h2>
+            <p>Clique em uma loja para ver estoque e vendas.</p>
+          </div>
+          <input class="search" id="busca" type="search" placeholder="Buscar por nome ou endereço" aria-label="Buscar loja">
+        </div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr><th>ID</th><th>Loja</th><th>Endereço</th><th>Contato</th><th class="t-right">Ações</th></tr>
+            </thead>
+            <tbody id="lojas-body">
+              <tr><td colspan="5" class="empty">Carregando…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel" id="form-panel">
+        <div class="panel__head">
+          <div>
+            <h2 id="form-title">Nova loja</h2>
+            <p id="form-sub">Preencha os dados para cadastrar.</p>
+          </div>
+        </div>
+        <form id="loja-form" class="form" autocomplete="off">
+          <input type="hidden" id="loja-id">
+          <label>Nome<input id="nome" maxlength="100" required placeholder="Ex.: Loja Centro"></label>
+          <label>Descrição<input id="descricao" maxlength="1000" placeholder="O que a loja vende"></label>
+          <label>Endereço<input id="endereco" maxlength="255" placeholder="Rua, número"></label>
+          <label>Contato<input id="contato" maxlength="50" placeholder="Telefone com DDD"></label>
+          <div class="form__actions">
+            <button type="submit" class="btn btn--primary" id="form-submit">Cadastrar loja</button>
+            <button type="button" class="btn btn--ghost" id="form-cancel" hidden>Cancelar edição</button>
+          </div>
+        </form>
+      </section>
     </div>
 
-    <script>
-        document.getElementById('cadastro-loja-form').addEventListener('submit', function(event) {
-            event.preventDefault();
-            const formData = new FormData();
-            formData.append('nome', document.getElementById('nome').value);
-            formData.append('descricao', document.getElementById('descricao').value);
-            formData.append('endereco', document.getElementById('endereco').value);
-            formData.append('contato', document.getElementById('contato').value);
+    <section class="panel" id="detalhe" hidden>
+      <div class="panel__head">
+        <div>
+          <span class="eyebrow" id="det-id">Loja</span>
+          <h2 id="det-nome">Loja</h2>
+          <p id="det-desc"></p>
+        </div>
+        <button class="btn btn--ghost" id="det-fechar" type="button">Fechar</button>
+      </div>
+      <div class="detail">
+        <div>
+          <h3>Estoque</h3>
+          <div class="table-wrap">
+            <table class="table table--compact">
+              <thead><tr><th>Produto</th><th>Categoria</th><th class="t-right">Qtd.</th><th class="t-right">Preço</th></tr></thead>
+              <tbody id="det-estoque"></tbody>
+            </table>
+          </div>
+          <form id="assoc-form" class="inline-form">
+            <select id="assoc-produto" required aria-label="Produto"></select>
+            <input id="assoc-qtd" type="number" min="0" placeholder="Qtd." aria-label="Quantidade">
+            <input id="assoc-preco" type="number" min="0" step="0.01" placeholder="Preço" aria-label="Preço">
+            <button class="btn btn--primary" type="submit">Associar produto</button>
+          </form>
+        </div>
+        <div>
+          <h3>Vendas</h3>
+          <div class="table-wrap">
+            <table class="table table--compact">
+              <thead><tr><th>Data</th><th>Produto</th><th class="t-right">Qtd.</th><th class="t-right">Total</th></tr></thead>
+              <tbody id="det-vendas"></tbody>
+            </table>
+          </div>
+          <form id="venda-form" class="inline-form">
+            <select id="venda-produto" required aria-label="Produto vendido"></select>
+            <input id="venda-qtd" type="number" min="1" value="1" required aria-label="Quantidade vendida">
+            <input id="venda-total" type="number" min="0" step="0.01" placeholder="Total R$" required aria-label="Valor total">
+            <button class="btn btn--primary" type="submit">Registrar venda</button>
+          </form>
+        </div>
+      </div>
+    </section>
 
-            fetch('/lojas', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.message === "Loja cadastrada com sucesso") {
-                    const loja = data.lojas[data.lojas.length - 1];
-                    const lojaItem = document.createElement('div');
-                    lojaItem.textContent = `ID: ${loja.id}, Nome: ${loja.nome}, Descrição: ${loja.descricao}, Endereço: ${loja.endereco}, Contato: ${loja.contato}`;
-                    document.getElementById('lojas-list').appendChild(lojaItem);
-                }
-            });
-        });
+    <section class="panel">
+      <div class="panel__head">
+        <div>
+          <h2>Histórico de vendas</h2>
+          <p>Últimas 100 vendas de todas as lojas.</p>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Data</th><th>Loja</th><th>Produto</th><th class="t-right">Qtd.</th><th class="t-right">Total</th></tr></thead>
+          <tbody id="historico-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
 
-        document.getElementById('associar-produto-form').addEventListener('submit', function(event) {
-            event.preventDefault();
-            const formData = new FormData();
-            formData.append('loja_id', document.getElementById('loja-id').value);
-            formData.append('produto_id', document.getElementById('produto-id').value);
+  <footer class="footer">
+    Flask · MySQL 8 · Docker Compose &middot; <a href="/status">/status</a> &middot; <a href="/lojas">/lojas</a>
+  </footer>
 
-            fetch('/produtos_lojas', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                const associacaoMensagem = document.getElementById('associacao-mensagem');
-                associacaoMensagem.textContent = data.message;
-            });
-        });
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-
-
-        // Fetch and display existing lojas on page load
-        fetch('/lojas')
-            .then(response => response.json())
-            .then(data => {
-                const lojasList = document.getElementById('lojas-list');
-                data.lojas.forEach(loja => {
-                    const lojaItem = document.createElement('div');
-                    lojaItem.textContent = `ID: ${loja.id}, Nome: ${loja.nome}, Descrição: ${loja.descricao}, Endereço: ${loja.endereco}, Contato: ${loja.contato}`;
-                    lojasList.appendChild(lojaItem);
-                });
-            });
-    </script>
+  <script src="{{ url_for('static', filename='scripts.js') }}"></script>
 </body>
 </html>
