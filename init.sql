@@ -217,7 +217,7 @@ INSERT IGNORE INTO items (pedido_id, produto_id, quantidade, preco) VALUES
 (1, 3, 2, 59.90);
 
 -- Índices para otimização
-CREATE INDEX IF NOT EXISTS idx_produtos_categoria ON produtos(categoria_id);
-CREATE INDEX IF NOT EXISTS idx_items_pedido ON items(pedido_id);
-CREATE INDEX IF NOT EXISTS idx_items_produto ON items(produto_id);
-CREATE INDEX IF NOT EXISTS idx_estoque_produto ON estoque(produto_id);
+CREATE INDEX idx_produtos_categoria ON produtos(categoria_id);
+CREATE INDEX idx_items_pedido ON items(pedido_id);
+CREATE INDEX idx_items_produto ON items(produto_id);
+CREATE INDEX idx_estoque_produto ON estoque(produto_id);
